@@ -1,59 +1,116 @@
 import create from 'zustand';
 import dayjs from 'dayjs';
 
-type Task = {
+export type Task = {
   id: string;
   text: string;
-  date: string;
   time: string;
+  date: string;
   done: boolean;
+};
+
+export type RecurringTask = {
+  id: string;
+  text: string;
+  time: string;
+  startDate: string;
+  endDate: string;
+  recurrence: 'daily' | 'weekly';
+  weekDays?: number[];
+};
+
+export type CompletedRecurring = {
+  id: string;
+  date: string;
 };
 
 type State = {
   tasks: Task[];
-  streak: number;
-  longestStreak: number;
-  lastCheckedDate: string;
+  recurringTasks: RecurringTask[];
+  completedRecurring: CompletedRecurring[];
+
   addTask: (task: Task) => void;
   deleteTask: (id: string) => void;
   toggleTask: (id: string) => void;
-  clearTodayTasks: (date: string) => void;
-  checkStreak: () => void;
+
+  addRecurringTask: (task: Omit<RecurringTask, 'id'>) => void;
+  deleteRecurringTask: (id: string) => void;
+  toggleRecurring: (id: string, date: string) => void;
+
+  getTasksForDate: (date: string) => {
+    oneTime: Task[];
+    recurring: (RecurringTask & { done: boolean })[];
+  };
+
+  getStreak: () => number;
 };
 
 export const useTaskStore = create<State>((set, get) => ({
   tasks: [],
-  streak: 0,
-  longestStreak: 0,
-  lastCheckedDate: '',
+  recurringTasks: [],
+  completedRecurring: [],
 
   addTask: (task) => set(state => ({ tasks: [...state.tasks, task] })),
   deleteTask: (id) => set(state => ({ tasks: state.tasks.filter(t => t.id !== id) })),
   toggleTask: (id) => set(state => ({
-    tasks: state.tasks.map(t => t.id === id ? { ...t, done: !t.done } : t),
+    tasks: state.tasks.map(t => t.id === id ? { ...t, done: !t.done } : t)
   })),
-  clearTodayTasks: (date) =>
-    set(state => ({
-      tasks: state.tasks.filter(t => t.date !== date),
-    })),
-  checkStreak: () => {
-    const { tasks, streak, longestStreak, lastCheckedDate } = get();
-    const today = dayjs().format('YYYY-MM-DD');
-    const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
 
-    // Avoid checking twice in one day
-    if (lastCheckedDate === today) return;
+  addRecurringTask: (task) => {
+    const id = Date.now().toString();
+    set(state => ({ recurringTasks: [...state.recurringTasks, { ...task, id }] }));
+  },
+  deleteRecurringTask: (id) => set(state => ({
+    recurringTasks: state.recurringTasks.filter(t => t.id !== id),
+    completedRecurring: state.completedRecurring.filter(c => c.id !== id),
+  })),
+  toggleRecurring: (id, date) => {
+    const exists = get().completedRecurring.find(c => c.id === id && c.date === date);
+    if (exists) {
+      set(state => ({
+        completedRecurring: state.completedRecurring.filter(c => !(c.id === id && c.date === date))
+      }));
+    } else {
+      set(state => ({
+        completedRecurring: [...state.completedRecurring, { id, date }]
+      }));
+    }
+  },
 
-    const yTasks = tasks.filter(t => t.date === yesterday);
-    const allDone = yTasks.length > 0 && yTasks.every(t => t.done);
+  getTasksForDate: (date) => {
+    const oneTime = get().tasks.filter(t => t.date === date);
+    const recurring = get().recurringTasks
+      .filter(r => {
+        const isInRange = !dayjs(date).isBefore(r.startDate) && !dayjs(date).isAfter(r.endDate);
+        const isDaily = r.recurrence === 'daily';
+        const isWeekly = r.recurrence === 'weekly' && r.weekDays?.includes(dayjs(date).day());
+        return isInRange && (isDaily || isWeekly);
+      })
+      .map(r => ({
+        ...r,
+        done: !!get().completedRecurring.find(c => c.id === r.id && c.date === date)
+      }));
+    return { oneTime, recurring };
+  },
 
-    let newStreak = allDone ? streak + 1 : 0;
-    let newLongest = Math.max(longestStreak, newStreak);
+  getStreak: () => {
+    const state = get();
+    let streak = 0;
+    for (let i = 0; ; i++) {
+      const date = dayjs().subtract(i, 'day').format('YYYY-MM-DD');
+      const { oneTime, recurring } = state.getTasksForDate(date);
+      const total = oneTime.length + recurring.length;
+      const done =
+        oneTime.filter(t => t.done).length +
+        recurring.filter(r => state.completedRecurring.find(c => c.id === r.id && c.date === date)).length;
 
-    set({
-      streak: newStreak,
-      longestStreak: newLongest,
-      lastCheckedDate: today,
-    });
+      if (total === 0) continue;
+      if (done === total) {
+        streak++;
+      } else {
+        break;
+      }
+    }
+    return streak;
   },
 }));

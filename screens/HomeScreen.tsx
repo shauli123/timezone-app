@@ -73,12 +73,12 @@ export default function HomeScreen() {
         )}
       />
 
-      <View style={{ marginTop: 20 }}>
+      {/* <View style={{ marginTop: 20 }}>
         <Button
           title="סיים יום"
           onPress={() => clearTodayTasks(dayjs().format('YYYY-MM-DD'))}
         />
-      </View>
+      </View> */}
     </View>
   );
 }

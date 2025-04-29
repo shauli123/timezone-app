@@ -1,8 +1,9 @@
 import { Tabs } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef} from 'react';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-
+import dayjs from 'dayjs';
+import { useTaskStore } from '../store/taskStore';
 // Global notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -27,11 +28,20 @@ export default function Layout() {
       }
     })();
   }, []);
+  const checkStreak = useTaskStore(s => s.checkStreak);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      checkStreak();
+    }, 60 * 60 * 1000); // every 1 hour
+
+    return () => clearInterval(interval);
+  }, []);
   return (
     <Tabs>
-      <Tabs.Screen name="index" options={{ title: 'היום' }} />
-      <Tabs.Screen name="week" options={{ title: 'שבוע' }} />
+      <Tabs.Screen name="index" options={{ title: 'יומי' }} />
+      <Tabs.Screen name="week" options={{ title: 'שבועי' }} />
+      <Tabs.Screen name="profile" options={{ title: 'פרופיל' }}/>
     </Tabs>
   );
 }

@@ -8,6 +8,11 @@
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "sdkVersion": "52.0.0",
+    "notification": {
+      "icon": "./assets/notification-icon.png",
+      "color": "#000000"
+    },
     "ios": {
       "supportsTablet": true
     },

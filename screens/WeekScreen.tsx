@@ -1,22 +1,20 @@
-import React, { useMemo } from 'react'
-import { View, Text, FlatList } from 'react-native'
-import dayjs from 'dayjs'
-import { useTaskStore } from '../../store/taskStore'
+import React, { useMemo } from 'react';
+import { View, Text, FlatList } from 'react-native';
+import dayjs from 'dayjs';
+import { useTaskStore } from '../store/taskStore.ts';
 
 export default function WeekScreen() {
-  // subscribe once
-  const allTasks = useTaskStore(s => s.tasks)
+  const allTasks = useTaskStore(s => s.tasks);
 
-  // prepare the 7-day array with memo to avoid needless recalcs
   const days = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => {
-      const date = dayjs().add(i, 'day').format('YYYY-MM-DD')
+      const date = dayjs().add(i, 'day').format('YYYY-MM-DD');
       return {
         date,
         tasks: allTasks.filter(t => t.date === date),
-      }
-    })
-  }, [allTasks])
+      };
+    });
+  }, [allTasks]);
 
   return (
     <FlatList
@@ -41,5 +39,5 @@ export default function WeekScreen() {
         </View>
       )}
     />
-  )
+  );
 }

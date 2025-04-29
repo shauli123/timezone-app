@@ -1,32 +1,32 @@
-import React, { useState } from 'react'
-import { View, Text, TextInput, Button, FlatList } from 'react-native'
-import { useTaskStore } from '../../store/taskStore'
-import { scheduleNotification } from '../../utils/notifications'
-import dayjs from 'dayjs'
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, FlatList } from 'react-native';
+import { useTaskStore } from '../store/taskStore';
+import { scheduleNotification } from '../utils/notifications';
+import dayjs from 'dayjs';
 
 export default function HomeScreen() {
-  const [text, setText] = useState('')
-  const [time, setTime] = useState('')
-  const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'))
+  const [text, setText] = useState('');
+  const [time, setTime] = useState('');
+  const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'));
 
-  // subscribe once to the entire tasks array
-  const allTasks = useTaskStore(s => s.tasks)
-  const { addTask, deleteTask, toggleTask, clearTodayTasks } = useTaskStore()
+  // subscribe to full tasks array
+  const allTasks = useTaskStore(s => s.tasks);
+  const { addTask, deleteTask, toggleTask, clearTodayTasks } = useTaskStore();
 
-  // now filter locally – no extra subscription churn
-  const tasks = allTasks.filter(t => t.date === date)
+  // filter locally
+  const tasks = allTasks.filter(t => t.date === date);
 
   const add = async () => {
-    if (!text || !time) return
-    const id = Date.now().toString()
-    const task = { id, text, date, time, done: false }
-    addTask(task)
-    const [h, m] = time.split(':')
-    const notifyDate = dayjs(date).hour(+h).minute(+m).toDate()
-    await scheduleNotification(text, notifyDate)
-    setText('')
-    setTime('')
-  }
+    if (!text || !time) return;
+    const id = Date.now().toString();
+    const task = { id, text, date, time, done: false };
+    addTask(task);
+    const [h, m] = time.split(':');
+    const notifyDate = dayjs(date).hour(Number(h)).minute(Number(m)).toDate();
+    await scheduleNotification(text, notifyDate);
+    setText('');
+    setTime('');
+  };
 
   return (
     <View style={{ padding: 20 }}>
@@ -80,5 +80,5 @@ export default function HomeScreen() {
         />
       </View>
     </View>
-  )
+  );
 }

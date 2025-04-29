@@ -1,53 +1,45 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react'
+import { View, Text, FlatList } from 'react-native'
+import dayjs from 'dayjs'
+import { useTaskStore } from '../../store/taskStore'
 
-const WeekScreen = () => {
-  const [tasks, setTasks] = useState<{ key: string; text: string; time: string }[]>([]);
+export default function WeekScreen() {
+  // subscribe once
+  const allTasks = useTaskStore(s => s.tasks)
 
-  useEffect(() => {
-    // Example of pre-loaded tasks with times
-    setTasks([
-      { key: '1', text: 'Task 1', time: '09:30' },
-      { key: '2', text: 'Task 2', time: '12:00' },
-      { key: '3', text: 'Task 3', time: '14:30' },
-    ]);
-  }, []);
-
-  const renderTask = ({ item }: { item: { key: string; text: string; time: string } }) => (
-    <View style={styles.taskContainer}>
-      <Text>{item.text}</Text>
-      <Text>{item.time}</Text>
-    </View>
-  );
+  // prepare the 7-day array with memo to avoid needless recalcs
+  const days = useMemo(() => {
+    return Array.from({ length: 7 }, (_, i) => {
+      const date = dayjs().add(i, 'day').format('YYYY-MM-DD')
+      return {
+        date,
+        tasks: allTasks.filter(t => t.date === date),
+      }
+    })
+  }, [allTasks])
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>שבוע</Text>
-      <FlatList
-        data={tasks}
-        renderItem={renderTask}
-        keyExtractor={(item) => item.key}
-      />
-    </View>
-  );
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
-  },
-  taskContainer: {
-    padding: 10,
-    marginBottom: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
-  },
-});
-
-export default WeekScreen;
+    <FlatList
+      data={days}
+      keyExtractor={d => d.date}
+      renderItem={({ item }) => (
+        <View style={{ padding: 10, borderBottomWidth: 0.5 }}>
+          <Text style={{ fontWeight: 'bold', marginBottom: 5 }}>
+            {dayjs(item.date).format('dddd, YYYY-MM-DD')}
+          </Text>
+          {item.tasks.length > 0 ? (
+            item.tasks.map(t => (
+              <Text key={t.id} style={{ marginLeft: 10 }}>
+                {t.time} – {t.text} {t.done ? '✅' : ''}
+              </Text>
+            ))
+          ) : (
+            <Text style={{ marginLeft: 10, color: '#666' }}>
+              אין משימות
+            </Text>
+          )}
+        </View>
+      )}
+    />
+  )
+}

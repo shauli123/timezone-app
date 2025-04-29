@@ -1,73 +1,84 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, Button, TextInput } from 'react-native';
-import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import React, { useState } from 'react'
+import { View, Text, TextInput, Button, FlatList } from 'react-native'
+import { useTaskStore } from '../../store/taskStore'
+import { scheduleNotification } from '../../utils/notifications'
+import dayjs from 'dayjs'
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+export default function HomeScreen() {
+  const [text, setText] = useState('')
+  const [time, setTime] = useState('')
+  const [date, setDate] = useState(dayjs().format('YYYY-MM-DD'))
 
-const scheduleNotification = async (taskName: string, time: string) => {
-  const trigger = new Date(time);
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: `Reminder: ${taskName}`,
-      body: `It's time to complete your task: ${taskName}`,
-    },
-    trigger: {
-      hour: trigger.getHours(),
-      minute: trigger.getMinutes(),
-      repeats: true,
-    },
-  });
-};
+  // subscribe once to the entire tasks array
+  const allTasks = useTaskStore(s => s.tasks)
+  const { addTask, deleteTask, toggleTask, clearTodayTasks } = useTaskStore()
 
-const HomeScreen = () => {
-  const [task, setTask] = useState('');
-  const [time, setTime] = useState(new Date());
-  const [showPicker, setShowPicker] = useState(false);
+  // now filter locally – no extra subscription churn
+  const tasks = allTasks.filter(t => t.date === date)
 
-  const handleTimeChange = (event: any, selectedDate: Date | undefined) => {
-    const currentDate = selectedDate || time;
-    setShowPicker(false);
-    setTime(currentDate);
-  };
-
-  const handleSaveTask = () => {
-    scheduleNotification(task, time.toISOString());
-    console.log(`Task: ${task}, Time: ${time}`);
-  };
-
-  useEffect(() => {
-    Notifications.requestPermissionsAsync();
-  }, []);
+  const add = async () => {
+    if (!text || !time) return
+    const id = Date.now().toString()
+    const task = { id, text, date, time, done: false }
+    addTask(task)
+    const [h, m] = time.split(':')
+    const notifyDate = dayjs(date).hour(+h).minute(+m).toDate()
+    await scheduleNotification(text, notifyDate)
+    setText('')
+    setTime('')
+  }
 
   return (
-    <View>
-      <Text>Welcome to the Timezone App</Text>
+    <View style={{ padding: 20 }}>
       <TextInput
-        placeholder="Task Name"
-        value={task}
-        onChangeText={setTask}
+        placeholder="משימה"
+        value={text}
+        onChangeText={setText}
+        style={{ borderBottomWidth: 1, marginBottom: 10 }}
       />
-      <Button title="Pick Time" onPress={() => setShowPicker(true)} />
-      {showPicker && (
-        <DateTimePicker
-          value={time}
-          mode="time"
-          is24Hour={true}
-          display="default"
-          onChange={handleTimeChange}
-        />
-      )}
-      <Button title="Save Task" onPress={handleSaveTask} />
-    </View>
-  );
-};
+      <TextInput
+        placeholder="שעה (HH:mm)"
+        value={time}
+        onChangeText={setTime}
+        style={{ borderBottomWidth: 1, marginBottom: 10 }}
+      />
+      <TextInput
+        placeholder="תאריך (YYYY-MM-DD)"
+        value={date}
+        onChangeText={setDate}
+        style={{ borderBottomWidth: 1, marginBottom: 10 }}
+      />
+      <Button title="הוסף" onPress={add} />
 
-export default HomeScreen;
+      <FlatList
+        data={tasks}
+        keyExtractor={item => item.id}
+        style={{ marginTop: 20 }}
+        renderItem={({ item }) => (
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              marginVertical: 5,
+            }}
+          >
+            <Text>
+              {item.time} - {item.text} {item.done ? '✅' : ''}
+            </Text>
+            <View style={{ flexDirection: 'row' }}>
+              <Button title="✔" onPress={() => toggleTask(item.id)} />
+              <Button title="🗑" onPress={() => deleteTask(item.id)} />
+            </View>
+          </View>
+        )}
+      />
+
+      <View style={{ marginTop: 20 }}>
+        <Button
+          title="סיים יום"
+          onPress={() => clearTodayTasks(dayjs().format('YYYY-MM-DD'))}
+        />
+      </View>
+    </View>
+  )
+}

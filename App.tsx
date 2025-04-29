@@ -1,18 +1,13 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import HomeScreen from './screens/HomeScreen';
-import WeekScreen from './screens/WeekScreen';
-
-const Tab = createBottomTabNavigator();
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import Layout from './app/Layout'; // your tab navigator
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Tab.Navigator>
-        <Tab.Screen name="היום" component={HomeScreen} />
-        <Tab.Screen name="שבוע" component={WeekScreen} />
-      </Tab.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <Layout />
+      <StatusBar style="auto" />
+    </SafeAreaProvider>
   );
 }

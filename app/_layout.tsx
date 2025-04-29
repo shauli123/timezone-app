@@ -1,15 +1,10 @@
-import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import HomeScreen from './screens/HomeScreen'; // Your screens
-import WeekScreen from './screens/WeekScreen';
-
-const Tab = createBottomTabNavigator();
+import { Tabs } from 'expo-router';
 
 export default function Layout() {
   return (
-    <Tab.Navigator>
-      <Tab.Screen name="היום" component={HomeScreen} />
-      <Tab.Screen name="שבוע" component={WeekScreen} />
-    </Tab.Navigator>
+    <Tabs>
+      <Tabs.Screen name="index" options={{ title: 'היום' }} />
+      <Tabs.Screen name="week" options={{ title: 'שבוע' }} />
+    </Tabs>
   );
 }
